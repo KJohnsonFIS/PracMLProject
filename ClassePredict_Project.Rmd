@@ -1,0 +1,107 @@
+---
+title: "Classe Prediction Project"
+author: "K Johnson"
+date: '`r Sys.Date()`'
+output: html_document
+---
+
+###Executive Summary
+
+This project's goal is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants and predict and quantify how well they do it. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.
+
+Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: 
+
+1. exactly according to the specification (Class A), 
+2. throwing the elbows to the front (Class B), 
+3. lifting the dumbbell only halfway (Class C), 
+4. lowering the dumbbell only halfway (Class D) and 
+5. throwing the hips to the front (Class E).
+
+Read more: http://groupware.les.inf.puc-rio.br/har#sbia_paper_section#ixzz46tAmwNTy
+
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har
+
+The following files have been provided for this project:
+
+1. pml-training.CSV
+2. pml-testing.CSV
+
+###Exploratory Analysis
+
+
+
+```{r ReadFiles, echo=FALSE,include=FALSE,message=FALSE}
+##install.packages("caret")
+library(caret)
+setwd("C:/Users/FIS/Documents/Coursera")
+trainingP <- read.csv(file="pml-training.CSV",head=TRUE,sep=",")
+testingP <- read.csv(file="pml-testing.CSV",head=TRUE,sep=",")
+str(trainingP)
+inTrain <- createDataPartition(y=trainingP$classe,p=0.75, list=FALSE)
+training <- trainingP[inTrain,]
+testing <- trainingP[-inTrain,]
+```
+A display of the class and some of the values in each column in the training dataset is shown in Appendix, Exhibit 1. The number of observations is `r nrow(trainingP)`.
+
+###Regression Models
+
+```{r RegMod1, echo=FALSE,include=FALSE,cache=TRUE,message=FALSE}
+model1 <- train(classe ~ total_accel_arm + total_accel_belt + total_accel_dumbbell + total_accel_forearm + num_window,preProcess=c("center", "scale"),data=training)
+print(model1)
+###Selection of Model
+```
+```{r RegMod2, echo=FALSE,include=FALSE,cache=TRUE,message=FALSE}
+model2 <- train(classe ~ total_accel_arm + total_accel_belt + total_accel_dumbbell + total_accel_forearm ,preProcess=c("center", "scale"),data=training)
+print(model2)
+###Selection of Model
+```
+Looking at the data, the model use these  predictors:
+    1. total_accel_arm 
+    2. total_accel_belt
+    3. total_accel_dumbbell 
+    4. total_accel_forearm
+    5. num_window
+    
+    
+The model selection has accuracy of .998. The print out of the models are shown in Exhibit 2 in the Appendix.
+
+###K fold Cross Validation
+```{r ReSamp, echo=FALSE,include=FALSE,cache=TRUE,warning=FALSE}
+train_control <- trainControl(method="cv", number=10)
+modelx <- train(classe ~ total_accel_arm + total_accel_belt + total_accel_dumbbell + total_accel_forearm + num_window,trControl=train_control,method="nb",data=training)
+print(modelx)
+```
+This analysis used 10 fold cross validation to construct Naive Bayes model using the  selected predictors (from model 1). The results are shown in Exhibit 3.
+
+## Predict Classe using the provided testing file and the selected model, The results are shown in Exhibit 4.
+```{r TestPred, echo=FALSE,include=FALSE,cache=TRUE,warning=FALSE}
+predict1 <- predict(model1,newdata=testingP)
+print(predict1)
+```
+Exhibit 5 shows the expected out of sample error using confusion matrix with testing data subset of training
+### determine out of sample error using the confusion matrix.
+```{r SampErr, echo=FALSE,include=FALSE,cache=TRUE,warning=FALSE}
+predict2 <- predict(model1,newdata=testing)
+confusionMatrix(testing$classe, predict2)
+```
+### APPENDIX
+
+#### Figure 1 - Class and sample data from each field in the training dataset
+```{r ref.label="ReadFiles",include=TRUE,echo=FALSE,message=FALSE}
+```
+#### Figure 2 -  models summary
+#### model 1 = classe ~ total_accel_arm + total_accel_belt + total_accel_dumbbell + total_accel_forearm + num_window
+```{r ref.label="RegMod1",include=TRUE,echo=FALSE,message=FALSE}
+```
+#### model 2 = classe ~ total_accel_arm + total_accel_belt + total_accel_dumbbell + total_accel_forearm
+```{r ref.label="RegMod2",include=TRUE,echo=FALSE,message=FALSE}
+```
+#### Figure 3 - K fold cross validation results on selected model
+```{r ref.label="ReSamp",include=TRUE,echo=FALSE,warning=FALSE}
+```
+####  Figure 4 - Predictions using the Testing file
+```{r ref.label="TestPred",include=TRUE,echo=FALSE,warning=FALSE}
+```
+#### Figure 5 - Out of sample error
+```{r ref.label="SampErr",include=TRUE,echo=FALSE,warning=FALSE}
+```
